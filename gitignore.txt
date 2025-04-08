@@ -1,0 +1,5 @@
+*.pyc
+*.png
+*.pth
+launch.json
+__pycache__/
