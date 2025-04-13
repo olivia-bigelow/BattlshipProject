@@ -44,9 +44,6 @@ def train_and_test_HAT(env, device, num_episodes, test_episodes):
     print("END OF THIS TEST")
     return 0,0,0
 
-
-
-
 def train_and_test_q_learning(env, device, num_episodes, test_episodes):
     print(f"Training Q-learning agent for {num_episodes} episodes...")
     agent = PyTorchQlearning(
@@ -154,7 +151,13 @@ def main():
         print("Automatically enabling comparison mode for 'both' agents")
     
     # Create the environment
-    env = gym.make("Battleship-v0")
+    env = gym.make("Battleship-v0", episode_steps=100, reward_dictionary = {
+    'win': 100,
+    'missed': -1,
+    'touched': 1,
+    'repeat_missed': -1,
+    'repeat_touched': -0.5
+})
     env.reset()
     
     # Get environment dimensions

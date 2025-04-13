@@ -96,3 +96,41 @@ def create_results_dir():
     """Create a results directory if it doesn't exist"""
     os.makedirs('results', exist_ok=True)
     return 'results'
+
+def plot_moves_per_game(moves_list, title='Moves per Game', filename='moves_per_game.png'):
+    """
+    Plot the number of moves made in each game.
+    
+    Args:
+        moves_list: List of number of moves for each game
+        title: Plot title
+        filename: Output filename for the saved plot
+    """
+    # Create the figure
+    plt.figure(figsize=(10, 6))
+    
+    # Create game numbers for x-axis
+    game_numbers = list(range(1, len(moves_list) + 1))
+    
+    # Plot moves per game as a bar chart
+    plt.bar(game_numbers, moves_list, color='blue', alpha=0.7)
+    
+    # Add average line
+    avg_moves = sum(moves_list) / len(moves_list)
+    plt.axhline(y=avg_moves, color='red', linestyle='--', 
+                label=f'Average: {avg_moves:.2f} moves')
+    
+    # Customize plot
+    plt.title(title)
+    plt.xlabel('Game Number')
+    plt.ylabel('Number of Moves')
+    plt.xticks(game_numbers)
+    plt.legend()
+    plt.grid(alpha=0.3, axis='y')
+    
+    # Save plot
+    plt.savefig(filename)
+    print(f"Plot saved to {filename}")
+    
+    # Close the figure to free memory
+    plt.close()

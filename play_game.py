@@ -4,8 +4,44 @@ import gym
 import gym_battleship
 import torch
 import random
+from visualization import create_results_dir, plot_moves_per_game
 
-def play_games(agent, env, num_games=5, delay=0.5, render=True, max_steps=100):
+def select_valid_action(agent, state, taken_actions):
+    """
+    Select an action that hasn't been taken before in the current game.
+    
+    Args:
+        agent: Trained agent (Q-learning or DQN)
+        state: Current game state
+        taken_actions: Set of actions already taken in the current game
+        
+    Returns:
+        action: A valid action that hasn't been taken before
+    """
+    # Get the action recommended by the agent
+    action = agent.select_action(state, training=False)
+    
+    # If the action has already been taken, find a new valid action
+    attempts = 0
+    max_attempts = 1000  # Safety limit to prevent infinite loops
+    
+    while action in taken_actions and attempts < max_attempts:
+        # Try to find a valid action by sampling randomly
+        if hasattr(agent, 'action_dim'):
+            # For Q-learning agents with known action dimension
+            action = random.randint(0, agent.action_dim - 1)
+        else:
+            # For other agents, try to get the action space from the environment
+            # This is a fallback that assumes the action space is bounded
+            action = random.randint(0, 99)  # For a 10x10 Battleship board
+        attempts += 1
+    
+    if attempts >= max_attempts:
+        print("Warning: Could not find an untried action after many attempts.")
+    
+    return action
+
+def play_games(agent, env, num_games=5, delay=0.5, render=True, max_steps=100, visualize_moves=True):
     """
     Play games with a trained agent and visualize the process.
     
@@ -16,112 +52,61 @@ def play_games(agent, env, num_games=5, delay=0.5, render=True, max_steps=100):
         delay: Delay between moves in seconds (for visualization)
         render: Whether to render the game state
         max_steps: Maximum steps per game to prevent infinite loops
+        visualize_moves: Whether to generate a plot of moves per game
     
     Returns:
         avg_reward: Average reward over games
         avg_steps: Average number of steps to complete a game
+        moves_per_game: List containing the number of moves for each game
     """
+    moves_per_game = []
     total_reward = 0
     total_steps = 0
-    wins = 0
     
     for game in range(num_games):
         state = env.reset()
         done = False
-        game_reward = 0
-        steps = 0
+        episode_reward = 0
+        episode_steps = 0
+        # Track moves already taken in this game
+        taken_actions = set()
         
-        # Keep track of attempted actions to avoid loops
-        attempted_actions = set()
-        consecutive_repeats = 0
-        
-        print(f"\n===== Game {game+1}/{num_games} =====")
-        if render:
-            print("Actual ship positions:")
-            env.render_board_generated()
-            print("\nInitial board state:")
-            env.render()
-        
-        while not done and steps < max_steps:
-            # Get action from agent
-            if hasattr(agent, 'select_action'):
-                action = agent.select_action(state, training=False)
-            else:
-                # For traditional Q-learning
-                state_key = agent.state_to_tuple(state) if hasattr(agent, 'state_to_tuple') else None
-                if state_key and state_key in agent.q_table:
-                    action = int(np.argmax(agent.q_table[state_key]))
-                else:
-                    action = env.action_space.sample()
-            
-            # If action was already attempted or we're seeing too many repeats, choose random action
-            if action in attempted_actions:
-                consecutive_repeats += 1
-                if consecutive_repeats > 3:  # Allow a few repeats before intervening
-                    # Pick random action that hasn't been tried
-                    available_actions = [a for a in range(env.action_space.n) if a not in attempted_actions]
-                    
-                    # If we've tried all actions or nearly all, reset and try again with some randomness
-                    if len(available_actions) < 5:
-                        print("Too many repeated actions, introducing randomness...")
-                        attempted_actions = set()  # Reset attempted actions
-                        action = env.action_space.sample()
-                    else:
-                        action = random.choice(available_actions)
-                    
-                    consecutive_repeats = 0
-                    print(f"Agent was stuck in a loop. Choosing random action instead.")
-            else:
-                consecutive_repeats = 0
-                attempted_actions.add(action)
-            
-            # Convert action to coordinates for display
-            x, y = action % env.board_size[0], action // env.board_size[0]
-            print(f"Agent fires at: ({x}, {y}) [Action {action}]")
-            
-            # Take action and observe result
-            next_state, reward, done, _ = env.step(action)
-            game_reward += reward
-            steps += 1
-            
-            # Print result
-            if reward > 0 and reward < 100:  # Ship hit but not game won
-                print(f"HIT! Reward: {reward}")
-            elif reward == 0:  # Miss
-                print(f"Miss! Reward: {reward}")
-            elif reward < 0:  # Penalty (repeated action)
-                print(f"Repeated action! Penalty: {reward}")
-            elif reward >= 100:  # Game won
-                print(f"Game Won! Reward: {reward}")
-                wins += 1
-            
-            # Update state
-            state = next_state
-            
-            # Render board if requested
+        while not done and episode_steps < max_steps:
             if render:
                 env.render()
-                time.sleep(delay)  # Add delay for better visualization
-        
-        # Check if we hit the max steps limit
-        if steps >= max_steps:
-            print(f"Game stopped after reaching maximum steps ({max_steps})")
-        
-        total_reward += game_reward
-        total_steps += steps
-        
-        print(f"Game {game+1} complete! Reward: {game_reward}, Steps: {steps}")
+                time.sleep(delay)
+            
+            # Get an action that hasn't been taken yet
+            action = select_valid_action(agent, state, taken_actions)
+            print(f"Action taken: {action}")
+            
+            # Record this action
+            taken_actions.add(action)
+            
+            # Take action
+            next_state, reward, done, _ = env.step(action)
+            
+            # Move to the next state
+            state = next_state
+            episode_reward += reward
+            episode_steps += 1
+            
+        moves_per_game.append(episode_steps)
+        total_reward += episode_reward
+        total_steps += episode_steps
     
     avg_reward = total_reward / num_games
     avg_steps = total_steps / num_games
-    win_rate = (wins / num_games) * 100
     
-    print(f"\n===== Results over {num_games} games =====")
-    print(f"Average reward: {avg_reward:.2f}")
-    print(f"Average steps: {avg_steps:.2f}")
-    print(f"Win rate: {win_rate:.1f}%")
+    # Generate plot of moves per game after all games are completed
+    if visualize_moves and moves_per_game:
+        results_dir = create_results_dir()
+        plot_moves_per_game(moves_per_game, title=f'Moves per Game', 
+                          filename=f'{results_dir}/moves_per_game.png')
     
-    return avg_reward, avg_steps
+    print(f"Average reward: {avg_reward}, Average steps: {avg_steps}")
+    
+    return avg_reward, avg_steps, moves_per_game
 
 def load_dqn_model(model_path, env, device):
     """

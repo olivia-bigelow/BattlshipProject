@@ -88,13 +88,13 @@ class DQNAgent:
         self.target_net.eval()  # Target network is only used for inference
         
         # Setup optimizer
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=0.0005)
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=0.01)
         
         # Create replay buffer
         self.replay_buffer = ReplayBuffer(capacity=10000)
         
         # Training parameters
-        self.batch_size = 64
+        self.batch_size = 128
         self.gamma = 0.99  # Discount factor
         self.epsilon = 1.0  # Initial exploration rate
         self.epsilon_min = 0.1  # Minimum exploration rate
@@ -110,6 +110,7 @@ class DQNAgent:
     
     def select_action(self, state, training=True):
         """Select action using epsilon-greedy policy"""
+
         if training and random.random() < self.epsilon:
             # Explore: random action
             return random.randint(0, self.action_dim - 1)
