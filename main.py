@@ -7,12 +7,13 @@ import os
 from dqn_agent import DQNAgent, train_dqn, test_dqn_agent
 from pytorch_q_learning import PyTorchQlearning, train_q_learning, test_q_learning_agent
 from hunt_and_target import HATAgent
+from probabilistic_hunt_and_target import ProbHATAgent
 from visualization import plot_rewards_comparison, create_results_dir
 from play_game import play_games, load_dqn_model
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Train and test agents for Battleship environment')
-    parser.add_argument('--agent', type=str, default='hunt_and_target', choices=['q_learning', 'dqn', 'both', "hunt_and_target"],
+    parser.add_argument('--agent', type=str, default='prob_hunt_and_target', choices=['q_learning', 'dqn', 'both', "hunt_and_target", "prob_hunt_and_target"],
                         help='Agent type to use (q_learning, dqn, or both, or hunt and target)')
     parser.add_argument('--episodes', type=int, default=5000,
                         help='Number of training episodes')
@@ -31,6 +32,19 @@ def parse_arguments():
     parser.add_argument('--load_model', type=str, default=None,
                         help='Path to a saved model to load instead of training (DQN only)')
     return parser.parse_args()
+
+
+
+def train_and_test_Prob_HAT(env, device, num_episodes, test_episodes):
+    print(f"Training probabilistic hunt and target agent for {num_episodes} episodes...")
+    agent = ProbHATAgent(action_dim=env.action_space.n)
+
+    numActions = agent.play_game(env)
+
+    print(numActions)
+
+    print("END OF THIS TEST")
+    return 0,0,0
 
 
 def train_and_test_HAT(env, device, num_episodes, test_episodes):
@@ -198,6 +212,11 @@ def main():
             )
         if args.agent in ["hunt_and_target"]:
             dqn_agent, dqn_reward, dqn_reward_per_step = train_and_test_HAT(
+                env, device, args.episodes, args.test_episodes
+            )
+        #prob_hunt_and_target
+        if args.agent in ["prob_hunt_and_target"]:
+            dqn_agent, dqn_reward, dqn_reward_per_step = train_and_test_Prob_HAT(
                 env, device, args.episodes, args.test_episodes
             )
 
