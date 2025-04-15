@@ -25,7 +25,7 @@ class probabilityMap:
 
         self.sunk = {2:0, 3:0, 4:0, 5:0}
         self.hits = []
-        self.guesses = []
+        self.guesses = set()
         self.setWeights()
 
 
@@ -93,10 +93,15 @@ class probabilityMap:
                       if point in self.guesses:
                         guessed = True
                         break
-                      self.map[point] += 1
                     if guessed:
                        break
-                  if guessed:
+                  if not guessed:
+                    for subRow in range(start_row, end_row):
+                      for subCol in range(start_col, end_col):
+                        point = (subRow * 10) + (subCol)
+
+                        self.map[point] += 1
+                  else:
                     continue
     
     for guess in self.guesses:
@@ -115,7 +120,7 @@ class probabilityMap:
 
   def updateMap(self, action, reward):
     #add the action to the list of guesses
-    self.guesses.append(action)
+    self.guesses.add(action)
 
     #if the reward is greater than 0, add to targets
     if reward > 0:
@@ -131,7 +136,7 @@ class probabilityMap:
         
 
 
-  def guessPoint(self, points = None, max = False):
+  def guessPoint(self, points = None, maxLikelihood = False):
     """
     This function guesses a point using the probability map
     The arguments determine the way in which a point is guessed
@@ -140,18 +145,17 @@ class probabilityMap:
     max, if max is true, the function returns the point that maximizes liklihood, otherwise the function samples points based on their weights
     """
 
-
     #check if max
-    if max:
+    if maxLikelihood:
       if points is None:
         #if points are undefined, and max is true, return the value taht maximizes weight
         return max(self.map, key=self.map.get)
       else:
-        max = -1
+        maxWeight = -1
         bestPoint = points[0]
         for point in points:
-          if self.map[point] > max:
-            max = self.map[point]
+          if self.map[point] > maxWeight:
+            maxWeight = self.map[point]
             bestPoint = point
         return bestPoint
     else:
@@ -161,6 +165,8 @@ class probabilityMap:
         cumulative_weight = 0
 
         for key, weight in self.map.items():
+          if key in self.guesses:
+            continue
           cumulative_weight += weight
           if random_num < cumulative_weight:
             return key

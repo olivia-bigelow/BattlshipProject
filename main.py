@@ -9,6 +9,8 @@ from pytorch_q_learning import PyTorchQlearning, train_q_learning, test_q_learni
 from hunt_and_target import HATAgent
 from probabilistic_hunt_and_target import ProbHATAgent
 from visualization import plot_rewards_comparison, create_results_dir
+from probabilistic_agent import ProbAgent
+from max_agent import MaxAgent
 from play_game import play_games, load_dqn_model
 
 def parse_arguments():
@@ -32,7 +34,6 @@ def parse_arguments():
     parser.add_argument('--load_model', type=str, default=None,
                         help='Path to a saved model to load instead of training (DQN only)')
     return parser.parse_args()
-
 
 
 def train_and_test_Prob_HAT(env, device, num_episodes, test_episodes):

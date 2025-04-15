@@ -47,9 +47,6 @@ class MaxAgent:
         
         self.prob.updateMap(action,reward)
 
-        #if the reward is greater than 0, add to targets
-        if reward > 0:
-            self.targets.append(action)
 
 
 
@@ -64,7 +61,7 @@ class MaxAgent:
       done = False
 
       while not done:
-          action = self.prob.guessPoint(max=True)
+          action = self.prob.guessPoint(maxLikelihood=True)
           num_actions = num_actions+1
           state, reward, done, _ = env.step(action)
           self.update(state, action, reward)

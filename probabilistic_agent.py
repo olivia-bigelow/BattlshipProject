@@ -47,9 +47,6 @@ class ProbAgent:
         
         self.prob.updateMap(action,reward)
 
-        #if the reward is greater than 0, add to targets
-        if reward > 0:
-            self.targets.append(action)
 
 
 
